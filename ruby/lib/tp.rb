@@ -26,10 +26,17 @@ class Object
   @@invariantes = []
   @@precondicion = proc{ true }
   @@postcondicion = proc{ true }
+  @@checkearInvariantes = true
 
   def self.invariant &invariante
     raise "No es una invariante" if invariante.arity != 0
-    @@invariantes.push invariante
+
+    @@invariantes.push proc {
+      @@checkearInvariantes = false
+      valor = instance_eval &invariante
+      @@checkearInvariantes = true
+      valor
+    }
   end
 
   def self.pre &precondicion
@@ -53,10 +60,11 @@ class Object
         raise "No se cumple la precondicion" if not precondicion.call *args
         _return = metodoClon.bind(self).call *args
         raise "No se cumple la postcondicion" if not postcondicion.call _return
-        raise "Error de invariante" if not @@invariantes.all? { |invariante| instance_eval &invariante }
+        if @@checkearInvariantes
+          (raise "Error de invariante" if not @@invariantes.all? { |invariante| instance_eval &invariante })
+        end
         return _return
       end
-
       @sobreescribiendo = false
     end
   end
@@ -66,10 +74,10 @@ class MiClase
   attr_accessor :variable
 
   def initialize
-    @variable = 9
+    @variable = 1
   end
 
-  invariant { @variable < 10 }
+  invariant { variable < 10 }
 
   def romperVariable
     @variable = 100
@@ -86,5 +94,3 @@ class MiClase
     num1 + num2
   end
 end
-
-MiClase.new.romperVariable

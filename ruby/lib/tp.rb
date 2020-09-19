@@ -22,45 +22,49 @@ class BeforeAndAfter
   end
 end
 
-class MiClase
-  @@invariantes = []
-  @@precondicion = proc{ true }
-  @@postcondicion = proc{ true }
-
-  def self.invariant &invariante
-    raise "No es una invariante" if invariante.arity != 0
-    @@invariantes.push invariante
-  end
-
+class Object
   def self.pre &precondicion
-    @@precondicion = precondicion
+    @precondicion = precondicion
   end
 
   def self.post &postcondicion
-    @@postcondicion = postcondicion
+    @postcondicion = postcondicion
+  end
+
+  def self.invariant &invariante
+    raise "No es una invariante" if invariante.arity != 0
+    if @invariantes != nil
+      @invariantes.push invariante
+    else
+      @invariantes = [invariante]
+    end
+  end
+
+  def self.checkearInvariantes(instancia)
+    if not @ignorarInvariantes and @invariantes != nil
+      @ignorarInvariantes = true
+      unless (@invariantes.all? proc { |invariante| instancia.instance_eval &invariante})
+        @ignorarInvariantes = false
+        raise "Error de invariante"
+      end
+      @ignorarInvariantes = false
+    end
   end
 
   def self.method_added mensaje
     unless @sobreescribiendo
       @sobreescribiendo = true
       metodoClon = instance_method(mensaje).clone
-      precondicion = @@precondicion
-      postcondicion = @@postcondicion
-      @@precondicion = proc{ true }
-      @@postcondicion = proc{ true }
+      precondicion = @precondicion != nil ? @precondicion : proc{ true }
+      postcondicion = @postcondicion != nil ? @postcondicion : proc{ true }
+      @precondicion = proc{ true }
+      @postcondicion = proc{ true }
 
       define_method mensaje do |*args|
         raise "No se cumple la precondicion" if not precondicion.call *args
         _return = metodoClon.bind(self).call *args
         raise "No se cumple la postcondicion" if not postcondicion.call _return
-        unless @checkearInvariantes
-          @checkearInvariantes = true
-          unless (@@invariantes.all? proc { |invariante| instance_eval &invariante})
-            @checkearInvariantes = false
-            raise "Error de invariante"
-          end
-          @checkearInvariantes = false
-        end
+        self.class.checkearInvariantes(self)
         return _return
       end
       @sobreescribiendo = false

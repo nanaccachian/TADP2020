@@ -1,66 +1,227 @@
 describe "TP" do
   describe '#pre' do
-    class ClasePre
-      pre { |num1, num2| num1 < 10 and num2 < 10 }
-      def sumaMenor num1, num2
-        num1 + num2
+    testClass = Class.new do
+      include PreAndPost
+      pre { numA<10 and numB<10 }
+      def sumaMenor numA, numB
+        numA + numB
       end
     end
 
-    it 'se cumple precondicion' do
-      expect{ ClasePre.new.sumaMenor 5 , 5 }.not_to raise_error #('Error de invariante')
+    it 'Se cumple precondicion 5<10' do
+      expect{ testClass.new.sumaMenor 5 , 5 }.not_to raise_error
     end
 
-    it 'no se cumple precondicion' do
-      expect{ ClasePre.new.sumaMenor 11 , 5 }.to raise_error ('No se cumple la precondicion')
+    it 'No se cumple precondicion 11>10' do
+      expect{ testClass.new.sumaMenor 11 , 5 }.to raise_error ('No se cumple la precondicion de sumaMenor')
+    end
+
+    it 'Las precondiciones no se superponen, ambas sumas cumplen su precondicion' do
+      testClass2 = Class.new do
+        include PreAndPost
+
+        pre { numA>20 and numB>20 }
+        def sumaMayor numA, numB
+          numA + numB
+        end
+
+        pre { numA<10 and numB<10 }
+        def sumaMenor numA, numB
+          numA + numB
+        end
+      end
+
+      expect{ testClass2.new.sumaMenor 1 , 3 }.not_to raise_error
+      expect{ testClass2.new.sumaMayor 21 , 53 }.not_to raise_error
     end
   end
 
   describe '#post' do
-    class ClasePost
-      post { |result| result > 15 }
-      def sumaMayor num1, num2
-        num1 + num2
+    testClass = Class.new do
+      include PreAndPost
+      post { |result| result>50 }
+      def sumaMayor numA, numB
+        numA + numB
       end
     end
 
-    it 'se cumple postcondicion' do
-      expect{ ClasePost.new.sumaMayor 10 , 10 }.not_to raise_error #('Error de invariante')
+    it 'Se cumple postcondicion 95>50' do
+      expect{ testClass.new.sumaMayor 35, 60 }.not_to raise_error
     end
 
-    it 'no se cumple postcondicion' do
-      expect{ ClasePost.new.sumaMayor 9 , 5 }.to raise_error ('No se cumple la postcondicion')
+    it 'No se cumple postcondicion 14<50' do
+      expect{ testClass.new.sumaMayor 9, 5 }.to raise_error ('No se cumple la postcondicion de sumaMayor')
+    end
+
+    it 'Las postcondiciones no se superponen, ambas sumas cumplen su precondicion' do
+      testClass2 = Class.new do
+        include PreAndPost
+        post { |result| result>50 }
+        def sumaMayor numA, numB
+          numA + numB
+        end
+
+        post { |result| result<20 }
+        def sumaMenor numA, numB
+          numA + numB
+        end
+      end
+
+      expect{ testClass2.new.sumaMenor 1 , 3 }.not_to raise_error
+      expect{ testClass2.new.sumaMayor 35 , 60 }.not_to raise_error
     end
   end
 
   describe '#invariante' do
-
-    class ClaseInv
+    testClass = Class.new do
+      include Invariants
       attr_accessor :variable
+
       invariant { variable < 10 }
 
-      def initialize valorInicial
-        @variable = valorInicial
+      def initialize variable
+        @variable = variable
       end
-      def cambiarVariable nuevoValor
-        @variable = nuevoValor
+
+      def cambiarVariable variable
+        @variable = variable
       end
     end
 
-    it 'la inicializacion con valor 0<10 no produce excepción' do
-      expect{ ClaseInv.new(0) }.not_to raise_error #('Error de invariante')
+    it 'La inicializacion con valor 0<10 no produce excepción' do
+      expect{ testClass.new(0) }.not_to raise_error
     end
 
-    it 'la inicializacion con valor 15>10 produce excepción' do
-      expect{ ClaseInv.new(15) }.to raise_error('Error de invariante')
+    it 'La inicializacion con valor 15>10 produce excepción' do
+      expect{ testClass.new(15) }.to raise_error('Error de invariante')
     end
 
-    it 'cambiarVariable con valor 5<10 no produce excepción' do
-      expect{ ClaseInv.new(0).cambiarVariable(5) }.not_to raise_error #('Error de invariante')
+    it 'CambiarVariable con valor 5<10 no produce excepción' do
+      expect{ testClass.new(0).cambiarVariable(5) }.not_to raise_error
     end
 
-    it 'cambiarVariable con valor 100>10 produce excepción' do
-      expect{ ClaseInv.new(0).cambiarVariable(100) }.to raise_error('Error de invariante')
+    it 'CambiarVariable con valor 100>10 produce excepción' do
+      expect{ testClass.new(0).cambiarVariable(100) }.to raise_error('Error de invariante')
+    end
+
+    it 'Variable= con valor 5<10 no produce excepción' do
+      expect{ testClass.new(0).variable = 5 }.not_to raise_error
+    end
+
+    it 'Variable= con valor 100>10 produce excepción' do
+      expect{ testClass.new(0).variable = 100 }.to raise_error('Error de invariante')
+    end
+    childClass = Class.new(testClass) do end
+
+    xit 'La inicializacion de una clase hijo' do
+      expect{ childClass.new(15) }.to raise_error('Error de invariante')
+    end
+  end
+
+  describe '#BeforeAndAfter' do
+
+    it 'El before se llama antes del mensaje' do
+      testClass = Class.new do
+        include BeforeAndAfter
+        attr_accessor :lista
+
+        before_and_after_each_call( proc{ agregar 1 }, proc{ })
+
+        def agregar num
+          @lista ||= []
+          @lista << num
+        end
+      end
+
+      testInstance =  testClass.new
+      testInstance.agregar 2
+      expect(testInstance.lista.to_a).to match_array([1,2])
+    end
+
+    it 'El after se llama despues del mensaje' do
+      testClass = Class.new do
+        include BeforeAndAfter
+        attr_accessor :lista
+
+        before_and_after_each_call( proc{ }, proc{ agregar 2 })
+
+        def agregar num
+          @lista ||= []
+          @lista << num
+        end
+      end
+
+      testInstance =  testClass.new
+      testInstance.agregar 1
+      expect(testInstance.lista.to_a).to match_array([1,2])
+    end
+
+    it 'El before y after funcionan en conjunto' do
+      testClass = Class.new do
+        include BeforeAndAfter
+        attr_accessor :lista
+
+        before_and_after_each_call( proc{ agregar 1 }, proc{ agregar 3 })
+
+        def agregar num
+          @lista ||= []
+          @lista << num
+        end
+      end
+
+      testInstance =  testClass.new
+      testInstance.agregar 2
+      expect(testInstance.lista.to_a).to match_array([1,2,3])
+    end
+
+    it 'si hay mas de un before_and_after, se ejecutan todos en orden' do
+      testClass = Class.new do
+        include BeforeAndAfter
+        attr_accessor :lista
+
+        before_and_after_each_call( proc{ agregar 1 }, proc{ agregar 5 })
+        before_and_after_each_call( proc{ agregar 2 }, proc{ agregar 6 })
+        before_and_after_each_call( proc{ agregar 3 }, proc{ agregar 7 })
+
+        def agregar num
+          @lista ||= []
+          @lista << num
+        end
+      end
+
+      testInstance =  testClass.new
+      testInstance.agregar 4
+      expect(testInstance.lista.to_a).to match_array([1,2,3,4,5,6,7])
+    end
+  end
+
+  describe '#CrossOvers' do
+
+    xit 'La invariante rompe y la postcondicion no' do
+      testClass = Class.new do
+        include Invariants
+        include PreAndPost
+        attr_accessor :variable
+
+        invariant { variable < 10 }
+
+        def cambiarVariable variable
+          @variable = variable
+        end
+
+        post { |result| result>50 }
+        def sumaMayor numA, numB
+          numA + numB
+        end
+
+        pre { numA<10 and numB<10 }
+        def sumaMenor numA, numB
+          numA + numB
+        end
+      end
+
+      expect{ testClass.new.sumaMayor 10, 30 }.to raise_error('No se cumple la postcondicion de sumaMayor')
+      expect{ testClass.new.cambiarVariable 20 }.to raise_error('Error de invariante')
     end
   end
 end

@@ -1,72 +1,114 @@
-class BeforeAndAfter
-  @@before_list = []
-  @@after_list = []
-
-  def self.before_and_after_each_call(before, after)
-    @@before_list.push(before)
-    @@after_list.push(after)
+module BeforeAndAfter
+  def self.included(klass)
+    super klass
+    klass.extend(BeforeAndAfterMethods)
   end
 
-  def self.method_added mensaje
-    unless @sobreescribiendo
-      @sobreescribiendo = true
-      method_clone = instance_method(mensaje).clone
-      define_method mensaje do |*args|
-        @@before_list.each { |before| before.call }
-        _return = method_clone.bind(self).call *args
-        @@after_list.each { |after| after.call }
-        return _return
+  module BeforeAndAfterMethods
+    def before_and_after_each_call(before, after)
+      @before_list ||= []
+      @after_list ||= []
+      @before_list << before
+      @after_list << after
+    end
+
+    def method_added mensaje
+      super mensaje
+      unless @sobreescribiendo
+        @sobreescribiendo = true
+        @before_list ||= []
+        @after_list ||= []
+        before_list = @before_list
+        after_list = @after_list
+        method = instance_method(mensaje)
+        define_method mensaje do |*args, &block|
+          before_list.each { |before| instance_eval &before } if before_list
+          _return = method.bind(self).call *args, &block
+          after_list.each { |after| instance_eval &after } if after_list
+          return _return
+        end
       end
+    end
+  ensure
+    @sobreescribiendo = false
+  end
+end
+
+module PreAndPost
+  def self.included(klass)
+    super klass
+    klass.extend(PreAndPostMethods)
+  end
+
+  module PreAndPostMethods
+    def pre &precondicion
+      @precondicion = precondicion
+    end
+
+    def post &postcondicion
+      @postcondicion = postcondicion
+    end
+
+    def method_added mensaje
+      unless @sobreescribiendo
+        @sobreescribiendo = true
+
+        precondicion = @precondicion || proc{ true }
+        postcondicion = @postcondicion || proc{ true }
+        @precondicion = nil
+        @postcondicion = nil
+
+        method = instance_method(mensaje)
+        define_method mensaje do |*args|
+          raise "No se cumple la precondicion de #{mensaje.to_s}" if not Struct.new(*(method.parameters.map{ |param| param[1] })).new(*args).instance_eval &precondicion
+          _return = method.bind(self).call *args
+          raise "No se cumple la postcondicion de #{mensaje.to_s}" if not postcondicion.call _return
+          return _return
+        end
+        super mensaje
+      end
+    ensure
       @sobreescribiendo = false
     end
   end
 end
 
-class Object
-  def self.pre &precondicion
-    @precondicion = precondicion
+module Invariants
+  def self.included(klass)
+    super klass
+    klass.extend(InvariantsMethods)
   end
 
-  def self.post &postcondicion
-    @postcondicion = postcondicion
-  end
-
-  def self.invariant &invariante
-    raise "No es una invariante" if invariante.arity != 0
-    if @invariantes != nil
-      @invariantes.push invariante
-    else
-      @invariantes = [invariante]
+  module InvariantsMethods
+    def invariant &invariante
+      @invariantes ||= []
+      @invariantes << invariante
     end
-  end
 
-  def self.checkearInvariantes(instancia)
-    if not @ignorarInvariantes and @invariantes != nil
-      @ignorarInvariantes = true
-      unless (@invariantes.all? proc { |invariante| instancia.instance_eval &invariante})
-        @ignorarInvariantes = false
-        raise "Error de invariante"
+    def checkearInvariantes(instancia)
+      if @invariantes and not @ignorarInvariantes
+        @ignorarInvariantes = true
+        unless (@invariantes.all? proc { |invariante| instancia.instance_eval &invariante})
+          @ignorarInvariantes = false
+          raise "Error de invariante"
+        end
       end
+    ensure
       @ignorarInvariantes = false
     end
-  end
 
-  def self.method_added mensaje
-    unless @sobreescribiendo
-      @sobreescribiendo = true
-      metodoClon = instance_method(mensaje).clone
-      precondicion = @precondicion != nil ? @precondicion : proc{ true }
-      postcondicion = @postcondicion != nil ? @postcondicion : proc{ true }
-      @precondicion = proc{ true }
-      @postcondicion = proc{ true }
-
-      define_method mensaje do |*args|
-        raise "No se cumple la precondicion" if not precondicion.call *args
-        _return = metodoClon.bind(self).call *args
-        raise "No se cumple la postcondicion" if not postcondicion.call _return
-        self.class.checkearInvariantes(self)
-        return _return
+    def method_added mensaje
+      super mensaje
+      method = instance_method(mensaje)
+      unless @sobreescribiendo
+        @sobreescribiendo = true
+        define_method mensaje do |*args|
+          _return = method.bind(self).call *args
+          self.class.checkearInvariantes(self)
+          return _return
+        end
       end
+    ensure
       @sobreescribiendo = false
     end
   end

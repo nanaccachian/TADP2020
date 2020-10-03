@@ -13,9 +13,9 @@ module BeforeAndAfter
     end
 
     def method_added mensaje
-      super mensaje
       unless @sobreescribiendo
         @sobreescribiendo = true
+
         @before_list ||= []
         @after_list ||= []
         before_list = @before_list
@@ -27,6 +27,7 @@ module BeforeAndAfter
           after_list.each { |after| instance_eval &after } if after_list
           return _return
         end
+        super mensaje
       end
     end
   ensure
@@ -59,9 +60,17 @@ module PreAndPost
         @postcondicion = nil
 
         method = instance_method(mensaje)
-        define_method mensaje do |*args|
-          raise "No se cumple la precondicion de #{mensaje.to_s}" if not Struct.new(*(method.parameters.map{ |param| param[1] })).new(*args).instance_eval &precondicion
-          _return = method.bind(self).call *args
+
+        define_method mensaje do |*args, &block|
+          params = method.parameters.map{ |param| param[1] }.filter{ |param| param }
+          if params.length == args.length and not method.parameters.empty?
+            instance_eval do
+              raise "No se cumple la precondicion de #{mensaje.to_s}" if not Struct.new(*params).new(*args).instance_eval &precondicion
+            end
+          else
+            raise "No se cumple la precondicion de #{mensaje.to_s}" if not instance_eval &precondicion
+          end
+          _return = method.bind(self).call *args, &block
           raise "No se cumple la postcondicion de #{mensaje.to_s}" if not postcondicion.call _return
           return _return
         end
@@ -98,15 +107,16 @@ module Invariants
     end
 
     def method_added mensaje
-      super mensaje
       method = instance_method(mensaje)
       unless @sobreescribiendo
         @sobreescribiendo = true
-        define_method mensaje do |*args|
-          _return = method.bind(self).call *args
+
+        define_method mensaje do |*args, &block|
+          _return = method.bind(self).call *args, &block
           self.class.checkearInvariantes(self)
           return _return
         end
+        super mensaje
       end
     ensure
       @sobreescribiendo = false

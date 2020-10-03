@@ -20,6 +20,7 @@ module BeforeAndAfter
         @after_list ||= []
         before_list = @before_list
         after_list = @after_list
+
         method = instance_method(mensaje)
         define_method mensaje do |*args, &block|
           before_list.each { |before| instance_eval &before } if before_list
@@ -27,6 +28,8 @@ module BeforeAndAfter
           after_list.each { |after| instance_eval &after } if after_list
           return _return
         end
+
+        #@sobreescribiendo = false
         super mensaje
       end
     end
@@ -74,6 +77,8 @@ module PreAndPost
           raise "No se cumple la postcondicion de #{mensaje.to_s}" if not postcondicion.call _return
           return _return
         end
+
+        #@sobreescribiendo = false
         super mensaje
       end
     ensure
@@ -116,6 +121,8 @@ module Invariants
           self.class.checkearInvariantes(self)
           return _return
         end
+
+        #@sobreescribiendo = false
         super mensaje
       end
     ensure

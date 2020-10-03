@@ -216,11 +216,11 @@ describe "TP" do
     testClass = Class.new do
       include Invariants
       include PreAndPost
-      #include BeforeAndAfter
+      include BeforeAndAfter
       attr_accessor :variable
 
       invariant { variable < 10 }
-      #before_and_after_each_call( proc { variable 5 }, proc { })
+      before_and_after_each_call( proc { variable = 5 }, proc { })
 
       def initialize
         @variable = 0
@@ -241,7 +241,7 @@ describe "TP" do
       end
     end
 
-    it 'La invariante rompe y la postcondicion no' do
+    xit 'La invariante rompe y la postcondicion no' do
       expect { testClass.new.sumaMayor 10, 30 }.to raise_error('No se cumple la postcondicion de sumaMayor')
       expect { testClass.new.cambiarVariable 20 }.to raise_error('Error de invariante')
     end

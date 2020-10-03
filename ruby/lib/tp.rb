@@ -1,46 +1,87 @@
+module Contracts
+  def method_add_before before
+    @precontratos ||= []
+    @precontratos << before
+  end
+
+  def method_add_after after
+    @poscontratos ||= []
+    @poscontratos << after
+  end
+
+  def method_added mensaje
+    unless @sobreescribiendo
+      @sobreescribiendo = true
+
+      @precontratos ||= []
+      @poscontratos ||= []
+      before_list = @precontratos.clone
+      after_list = @poscontratos.clone
+
+      method = instance_method(mensaje)
+      define_method mensaje do |*args, &block|
+        before_list.each { |before| instance_exec(*args, &before) }
+        _return = method.bind(self).call *args, &block
+        after_list.each { |after| instance_exec(_return, &after) }
+        return _return
+      end
+
+      @precontratos = []
+      @poscontratos = []
+    end
+  ensure
+    @sobreescribiendo = false
+  end
+
+  def checkearInvariantes(instancia)
+  end
+end
+
 module BeforeAndAfter
   def self.included(klass)
     super klass
+    klass.extend(Contracts)
     klass.extend(BeforeAndAfterMethods)
   end
 
   module BeforeAndAfterMethods
     def before_and_after_each_call(before, after)
-      @before_list ||= []
-      @after_list ||= []
-      @before_list << before
-      @after_list << after
+      @before ||= []
+      @after ||= []
+      @before << before
+      @after << after
+    end
+
+    def chequearBefore instancia
+      unless @checkeandoByA
+        @checkeandoByA = true
+        @before ||= []
+        @before.each { |metodo| instancia.instance_eval &metodo }
+        @checkeandoByA = false
+      end
+    end
+
+    def chequearAfter instancia
+      unless @checkeandoByA
+        @checkeandoByA = true
+        @after ||= []
+        @after.each { |metodo| instancia.instance_eval &metodo }
+        @checkeandoByA = false
+      end
     end
 
     def method_added mensaje
-      unless @sobreescribiendo
-        @sobreescribiendo = true
-
-        @before_list ||= []
-        @after_list ||= []
-        before_list = @before_list
-        after_list = @after_list
-
-        method = instance_method(mensaje)
-        define_method mensaje do |*args, &block|
-          before_list.each { |before| instance_eval &before } if before_list
-          _return = method.bind(self).call *args, &block
-          after_list.each { |after| instance_eval &after } if after_list
-          return _return
-        end
-
-        #@sobreescribiendo = false
-        super mensaje
-      end
+      method_add_before Proc.new { self.class.chequearBefore self }
+      method_add_after Proc.new { self.class.chequearAfter self }
+      super mensaje
     end
-  ensure
-    @sobreescribiendo = false
   end
 end
 
 module PreAndPost
   def self.included(klass)
     super klass
+    klass.extend(Contracts)
     klass.extend(PreAndPostMethods)
   end
 
@@ -54,35 +95,32 @@ module PreAndPost
     end
 
     def method_added mensaje
-      unless @sobreescribiendo
-        @sobreescribiendo = true
+      method = instance_method(mensaje)
 
-        precondicion = @precondicion || proc{ true }
-        postcondicion = @postcondicion || proc{ true }
-        @precondicion = nil
-        @postcondicion = nil
-
-        method = instance_method(mensaje)
-
-        define_method mensaje do |*args, &block|
+      if @precondicion
+        precondicion = @precondicion
+        method_add_before Proc.new { |*args|
           params = method.parameters.map{ |param| param[1] }.filter{ |param| param }
-          if params.length == args.length and not method.parameters.empty?
+          if not method.parameters.empty?
             instance_eval do
               raise "No se cumple la precondicion de #{mensaje.to_s}" if not Struct.new(*params).new(*args).instance_eval &precondicion
             end
           else
             raise "No se cumple la precondicion de #{mensaje.to_s}" if not instance_eval &precondicion
           end
-          _return = method.bind(self).call *args, &block
-          raise "No se cumple la postcondicion de #{mensaje.to_s}" if not postcondicion.call _return
-          return _return
-        end
-
-        #@sobreescribiendo = false
-        super mensaje
+        }
+        @precondicion = nil
       end
-    ensure
-      @sobreescribiendo = false
+
+      if @postcondicion
+        postcondicion = @postcondicion
+        method_add_after Proc.new { |resultado|
+          raise "No se cumple la postcondicion de #{mensaje.to_s}" if not postcondicion.call resultado
+        }
+        @postcondicion = nil
+      end
+
+      super mensaje
     end
   end
 end
@@ -90,6 +128,7 @@ end
 module Invariants
   def self.included(klass)
     super klass
+    klass.extend(Contracts)
     klass.extend(InvariantsMethods)
   end
 
@@ -102,31 +141,22 @@ module Invariants
     def checkearInvariantes(instancia)
       if @invariantes and not @ignorarInvariantes
         @ignorarInvariantes = true
+        @checkeandoByA = true
         unless (@invariantes.all? proc { |invariante| instancia.instance_eval &invariante})
           @ignorarInvariantes = false
+          @checkeandoByA = false
           raise "Error de invariante"
         end
+        @ignorarInvariantes = false
+        @checkeandoByA = false
       end
-    ensure
-      @ignorarInvariantes = false
     end
 
     def method_added mensaje
-      method = instance_method(mensaje)
-      unless @sobreescribiendo
-        @sobreescribiendo = true
-
-        define_method mensaje do |*args, &block|
-          _return = method.bind(self).call *args, &block
+        method_add_after Proc.new {
           self.class.checkearInvariantes(self)
-          return _return
-        end
-
-        #@sobreescribiendo = false
+        }
         super mensaje
-      end
-    ensure
-      @sobreescribiendo = false
     end
   end
 end

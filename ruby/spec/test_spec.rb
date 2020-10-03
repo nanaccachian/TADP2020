@@ -129,10 +129,10 @@ describe "TP" do
     it 'Variable= con valor 100>10 produce excepción' do
       expect{ testClass.new(0).variable = 100 }.to raise_error('Error de invariante')
     end
-    childClass = Class.new(testClass) do end
 
-    xit 'La inicializacion de una clase hijo' do
-      expect { childClass.new(15) }.to raise_error('Error de invariante')
+    xit 'Herencia' do
+      childClass = Class.new(testClass)
+      expect { childClass.new(20).cambiarVariable(29) }.to raise_error('Error de invariante')
     end
   end
 
@@ -150,9 +150,9 @@ describe "TP" do
         end
       end
 
-      testInstance =  testClass.new
+      testInstance = testClass.new
       testInstance.agregar 2
-      expect(testInstance.lista.to_a).to match_array([1, 2])
+      expect(testInstance.lista).to eq([1, 2, 1])
     end
 
     it 'El after se llama despues del mensaje' do
@@ -170,7 +170,7 @@ describe "TP" do
 
       testInstance =  testClass.new
       testInstance.agregar 1
-      expect(testInstance.lista.to_a).to match_array([1,2])
+      expect(testInstance.lista).to eq([1, 2, 2])
     end
 
     it 'El before y after funcionan en conjunto' do
@@ -188,10 +188,10 @@ describe "TP" do
 
       testInstance = testClass.new
       testInstance.agregar 2
-      expect(testInstance.lista.to_a).to match_array([1, 2, 3])
+      expect(testInstance.lista).to eq([1, 2, 3, 1, 3])
     end
 
-    it 'si hay mas de un before_and_after, se ejecutan todos en orden' do
+    it 'Si hay mas de un before_and_after, se ejecutan todos en orden' do
       testClass = Class.new do
         include BeforeAndAfter
         attr_accessor :lista
@@ -208,7 +208,7 @@ describe "TP" do
 
       testInstance = testClass.new
       testInstance.agregar 4
-      expect(testInstance.lista.to_a).to match_array([1, 2, 3, 4, 5, 6, 7])
+      expect(testInstance.lista.to_a).to eq([1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 5, 6, 7])
     end
   end
 
@@ -220,14 +220,10 @@ describe "TP" do
       attr_accessor :variable
 
       invariant { variable < 10 }
-      before_and_after_each_call( proc { variable = 5 }, proc { })
+      before_and_after_each_call(proc { @variable = 5 }, proc { })
 
       def initialize
         @variable = 0
-      end
-
-      def cambiarVariable variable
-        @variable = variable
       end
 
       post { |result| result>50 }
@@ -241,12 +237,13 @@ describe "TP" do
       end
     end
 
-    xit 'La invariante rompe y la postcondicion no' do
-      expect { testClass.new.sumaMayor 10, 30 }.to raise_error('No se cumple la postcondicion de sumaMayor')
-      expect { testClass.new.cambiarVariable 20 }.to raise_error('Error de invariante')
+    it 'La invariante rompe y la postcondicion no' do
+      testInstance = testClass.new
+      expect { testInstance.sumaMayor 30, 30 }.not_to raise_error
+      expect { testInstance.variable = 20 }.to raise_error('Error de invariante')
     end
 
-    xit 'La precondicion rompe y before pasa' do
+    it 'La precondicion rompe y before pasa' do
       testInstance = testClass.new
       expect { testInstance.sumaMenor 10, 30 }.to raise_error('No se cumple la precondicion de sumaMenor')
       expect(testInstance.variable).to eq(5)

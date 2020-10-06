@@ -1,7 +1,7 @@
 describe "TP" do
   describe '#pre' do
     testClass = Class.new do
-      include PreAndPost
+      extend PreAndPost
       attr_accessor :precondicionOk
 
       pre { precondicionOk }
@@ -36,7 +36,7 @@ describe "TP" do
 
     it 'Las precondiciones no se superponen, ambas sumas cumplen su precondicion' do
       testClass2 = Class.new do
-        include PreAndPost
+        extend PreAndPost
 
         pre { numA>20 and numB>20 }
         def sumaMayor numA, numB
@@ -56,7 +56,7 @@ describe "TP" do
 
   describe '#post' do
     testClass = Class.new do
-      include PreAndPost
+      extend PreAndPost
       post { |result| result>50 }
       def sumaMayor numA, numB
         numA + numB
@@ -73,7 +73,7 @@ describe "TP" do
 
     it 'Las postcondiciones no se superponen, ambas sumas cumplen su precondicion' do
       testClass2 = Class.new do
-        include PreAndPost
+        extend PreAndPost
         post { |result| result>50 }
         def sumaMayor numA, numB
           numA + numB
@@ -92,7 +92,7 @@ describe "TP" do
 
   describe '#invariante' do
     testClass = Class.new do
-      include Invariants
+      extend Invariants
       attr_accessor :variable
 
       invariant { variable < 10 }
@@ -139,7 +139,7 @@ describe "TP" do
   describe '#BeforeAndAfter' do
     it 'El before se llama antes del mensaje' do
       testClass = Class.new do
-        include BeforeAndAfter
+        extend BeforeAndAfter
         attr_accessor :lista
 
         before_and_after_each_call(proc { agregar 1 }, proc { })
@@ -157,7 +157,7 @@ describe "TP" do
 
     it 'El after se llama despues del mensaje' do
       testClass = Class.new do
-        include BeforeAndAfter
+        extend BeforeAndAfter
         attr_accessor :lista
 
         before_and_after_each_call( proc{ }, proc{ agregar 2 })
@@ -175,7 +175,7 @@ describe "TP" do
 
     it 'El before y after funcionan en conjunto' do
       testClass = Class.new do
-        include BeforeAndAfter
+        extend BeforeAndAfter
         attr_accessor :lista
 
         before_and_after_each_call( proc { agregar 1 }, proc { agregar 3 })
@@ -193,7 +193,7 @@ describe "TP" do
 
     it 'Si hay mas de un before_and_after, se ejecutan todos en orden' do
       testClass = Class.new do
-        include BeforeAndAfter
+        extend BeforeAndAfter
         attr_accessor :lista
 
         before_and_after_each_call( proc { agregar 1 }, proc { agregar 5 })
@@ -214,9 +214,9 @@ describe "TP" do
 
   describe '#CrossOvers' do
     testClass = Class.new do
-      include Invariants
-      include PreAndPost
-      include BeforeAndAfter
+      extend Invariants
+      extend PreAndPost
+      extend BeforeAndAfter
       attr_accessor :variable
 
       invariant { variable < 10 }

@@ -1,5 +1,4 @@
 package tadp
-
 import scalafx.scene.paint.Color
 import tadp.internal.TADPDrawingAdapter
 
@@ -12,4 +11,6 @@ object TADPDrawingApp extends App {
         .rectangle((200, 200), (400, 400))
         .end()
     }
+
 }
+

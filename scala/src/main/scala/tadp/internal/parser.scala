@@ -50,10 +50,4 @@ package object parser {
   case class ParserResult[+T](consumed: T, input: String)
 
   case class ParserError() extends RuntimeException
-
-  def tryParse[T](method: => ParserResult[T]): Try[ParserResult[T]] = Try {
-    method
-  } recover {
-    case _ => throw ParserError()
-  }
 }

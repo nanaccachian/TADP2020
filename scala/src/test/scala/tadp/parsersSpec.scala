@@ -1,8 +1,9 @@
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
+import parser._
 import parsers._
 
-class Parsers extends AnyFlatSpec with should.Matchers {
+class ParsersSpect extends AnyFlatSpec with should.Matchers {
 
   //=========================== anyChar ===========================//
   "anyChar" should "recibiendo Hola produce una H" in {
@@ -53,15 +54,19 @@ class Parsers extends AnyFlatSpec with should.Matchers {
   }
 
   //=========================== integer ===========================//
-  "integer" should "con target 12 recibiendo 1204 produce una 12" in {
-    integer(12)("1204").get shouldEqual ParserResult(12, "04")
+  "integer" should "recibiendo 5384Hola produce una 5384" in {
+    integer("5384Hola").get shouldEqual ParserResult(5384, "Hola")
   }
 
-  it should "con target 12 recibiendo 4321 produce ParserError" in {
-    an [ParserError] should be thrownBy integer(12)("4321").get
+  "integer" should "recibiendo 5384 produce una 5384" in {
+    integer("5384").get shouldEqual ParserResult(5384, "")
   }
 
-  it should "con target 12 recibiendo string vacío produce ParserError" in {
-    an [ParserError] should be thrownBy integer(12)("").get
+  it should "recibiendo Hola5384 produce ParserError" in {
+    an [ParserError] should be thrownBy integer("Hola5384").get
+  }
+
+  it should "recibiendo string vacío produce ParserError" in {
+    an [ParserError] should be thrownBy integer("").get
   }
 }

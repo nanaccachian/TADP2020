@@ -1,48 +1,45 @@
-import scala.util.Try
+import parser._
 
 package object parsers {
+  def anyChar: Parser[Char] = Parser { input => ParserResult(input.head, input.tail) }
 
-  type Parser[A] = String => Try[ParserResult[A]]
-
-  case class ParserResult[T](consumed: T, input: String)
-  case class ParserError() extends RuntimeException
-
-  def tryParse[T](method: => ParserResult[T]): Try[ParserResult[T]] = Try {
-    method
-  } recover {
-    case _ => throw ParserError()
-  }
-
-  anyChar: Parser[Char]
-  def anyChar(input: String) = tryParse { ParserResult(input.head, input.tail) }
-
-  char: (Char => Parser[Char])
-  def char(target: Char)(input: String) = tryParse {
+  def char(target: Char): Parser[Char] = Parser { input =>
     if (!input.head.equals(target))
       throw ParserError()
     ParserResult(input.head, input.tail)
   }
 
-  digit: Parser[Int]
-  def digit(input: String) = tryParse {
+  def digit: Parser[Int] = Parser { input =>
     if (!input.head.isDigit)
       throw ParserError()
     ParserResult(input.head.toInt - 48, input.tail)
   }
 
-  string: (String => Parser[String])
-  def string(target: String)(input: String) = tryParse {
+  def string(target: String): Parser[String] = Parser { input =>
     val targetLength = target.length
     if (!input.substring(0, targetLength).equals(target))
       throw ParserError()
     ParserResult(target, input.substring(targetLength))
   }
 
-  integer: (Int => Parser[Int])
-  def integer(target: Int)(input: String) = tryParse {
-    val targetLength = target.toString.length
-    if (!input.substring(0, targetLength).equals(target.toString))
-      throw ParserError()
-    ParserResult(target, input.substring(targetLength))
+  /*
+    def integer(target: Int): Parser[Int] = Parser { input =>
+      val targetLength = target.toString.length
+      if (!input.substring(0, targetLength).equals(target.toString))
+        throw ParserError()
+      ParserResult(target, input.substring(targetLength))
+    }
+   */
+
+  def integer: Parser[Int] = Parser { input =>
+    var pivot = digit(input)
+    var result = pivot
+    var consumed = 0
+    while (pivot.isSuccess) {
+      result = pivot
+      consumed = consumed * 10 + result.get.consumed
+      pivot = digit(result.get.input)
+    }
+    ParserResult(consumed, result.get.input)
   }
 }

@@ -1,9 +1,8 @@
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should
-import parser._
-import parsers._
+package tadp
+import org.scalatest.flatspec._
+import org.scalatest.matchers._
 
-class ParsersSpect extends AnyFlatSpec with should.Matchers {
+class ParsersSpec extends AnyFlatSpec with should.Matchers {
 
   //=========================== anyChar ===========================//
   "anyChar" should "recibiendo Hola produce una H" in {
@@ -54,12 +53,16 @@ class ParsersSpect extends AnyFlatSpec with should.Matchers {
   }
 
   //=========================== integer ===========================//
-  "integer" should "recibiendo 5384Hola produce una 5384" in {
+  "integer" should "recibiendo 5384Hola produce 5384" in {
     integer("5384Hola").get shouldEqual ParserResult(5384, "Hola")
   }
 
-  "integer" should "recibiendo 5384 produce una 5384" in {
+  it should "recibiendo 5384 produce 5384" in {
     integer("5384").get shouldEqual ParserResult(5384, "")
+  }
+
+  it should "recibiendo -5384 produce -5384" in {
+    integer("-5384").get shouldEqual ParserResult(-5384, "")
   }
 
   it should "recibiendo Hola5384 produce ParserError" in {
@@ -68,5 +71,42 @@ class ParsersSpect extends AnyFlatSpec with should.Matchers {
 
   it should "recibiendo string vacío produce ParserError" in {
     an [ParserError] should be thrownBy integer("").get
+  }
+
+  //=========================== double ===========================//
+  "double" should "recibiendo 5384Hola produce 5384" in {
+    double("5384Hola").get shouldEqual ParserResult(5384, "Hola")
+  }
+
+  it should "recibiendo 5384 produce 5384" in {
+    double("5384").get shouldEqual ParserResult(5384, "")
+  }
+
+  it should "recibiendo 53.842 produce 53.842" in {
+    double("53.842").get shouldEqual ParserResult(53.842, "")
+  }
+
+  it should "recibiendo -513.842 produce 513.842" in {
+    double("-513.842").get shouldEqual ParserResult(-513.842, "")
+  }
+
+  it should "recibiendo -5384 produce -5384" in {
+    double("-5384").get shouldEqual ParserResult(-5384, "")
+  }
+
+  it should "recibiendo -25. produce ParserError" in {
+    double("-25.").get shouldEqual ParserResult(-25, ".")
+  }
+
+  it should "recibiendo .25 produce ParserError" in {
+    an [ParserError] should be thrownBy double(".25").get
+  }
+
+  it should "recibiendo Hola5384 produce ParserError" in {
+    an [ParserError] should be thrownBy double("Hola5384").get
+  }
+
+  it should "recibiendo string vacío produce ParserError" in {
+    an [ParserError] should be thrownBy double("").get
   }
 }

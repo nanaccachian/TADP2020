@@ -1,19 +1,8 @@
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
-import parser._
-import parsers._
+import tadp._
 
-class ParserSpect extends AnyFlatSpec with should.Matchers {
-
-  "<>" should "FELIZ" in {
-    val holaMundo: Parser[(String, String)] = string("hola") <> string("mundo")
-    holaMundo("holamundolindo").get shouldEqual ParserResult(("hola", "mundo"), "lindo")
-  }
-
-  it should "TRISTE" in {
-    val holaMundo: Parser[(String, String)] = string("hola") <> string("mundo")
-    an[ParserError] should be thrownBy holaMundo("adiosmundolindo").get
-  }
+class CombinatorsSpec extends AnyFlatSpec with should.Matchers {
 
   "<|>" should "FELIZ A" in {
     val holaOadios: Parser[Any] = string("hola") <|> integer
@@ -28,6 +17,16 @@ class ParserSpect extends AnyFlatSpec with should.Matchers {
   it should "TRISTE" in {
     val holaOadios: Parser[Any] = string("hola") <|> string("adios")
     an[ParserError] should be thrownBy holaOadios("chaumundo").get
+  }
+
+  "<>" should "FELIZ" in {
+    val holaMundo: Parser[(String, String)] = string("hola") <> string("mundo")
+    holaMundo("holamundolindo").get shouldEqual ParserResult(("hola", "mundo"), "lindo")
+  }
+
+  it should "TRISTE" in {
+    val holaMundo: Parser[(String, String)] = string("hola") <> string("mundo")
+    an[ParserError] should be thrownBy holaMundo("adiosmundolindo").get
   }
 
   "~>" should "FELIZ" in {
@@ -66,14 +65,12 @@ class ParserSpect extends AnyFlatSpec with should.Matchers {
   }
 
   it should "TRISTE B" in {
-    val telefono: Parser[String] = integer stepBy char('-')
-    an[ParserError] should be thrownBy telefono("-4356-1234").get
+    val telefono: Parser[String] = integer stepBy char('/')
+    an[ParserError] should be thrownBy telefono("/4356/1234").get
   }
 
   it should "TRISTE C" in {
     val telefono: Parser[String] = char('a') stepBy char('-')
     an[ParserError] should be thrownBy telefono("a-a-a-").get
   }
-
 }
-

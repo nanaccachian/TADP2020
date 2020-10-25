@@ -1,5 +1,4 @@
 package tadp
-
 import scala.util._
 
 trait Parser[A] extends (String => Try[ParserResult[A]]) {

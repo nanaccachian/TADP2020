@@ -23,18 +23,18 @@ case class group(shapes: List[Shape]) extends Shape {
   override def draw(adapter: TADPDrawingAdapter): TADPDrawingAdapter = shapes.foldLeft(adapter) ((adapter, shape) => shape.draw(adapter))
 }
 
-case class color(red: Int, green: Int, blue: Int, alpha: Double = 1)(shape: Shape) extends Shape {
-  override def draw(adapter: TADPDrawingAdapter): TADPDrawingAdapter = shape.draw(adapter.beginColor(Color.rgb(red, green, blue, alpha))).end()
+case class color(red: Int, green: Int, blue: Int, shape:Shape) extends Shape {
+  override def draw(adapter: TADPDrawingAdapter): TADPDrawingAdapter = shape.draw(adapter.beginColor(Color.rgb(red, green, blue))).end()
 }
 
-case class scale(scaleX: Double, scaleY: Double)(shape:Shape) extends Shape {
+case class scale(scaleX: Double, scaleY: Double, shape:Shape) extends Shape {
   override def draw(adapter: TADPDrawingAdapter): TADPDrawingAdapter = shape.draw(adapter.beginScale(scaleX, scaleY)).end()
 }
 
-case class rotate(grades: Double)(shape: Shape) extends Shape {
+case class rotate(grades: Double, shape: Shape) extends Shape {
   override def draw(adapter: TADPDrawingAdapter): TADPDrawingAdapter = shape.draw(adapter.beginRotate(grades)).end()
 }
 
-case class translate(transX: Double, transY: Double)(shape: Shape) extends Shape {
+case class translate(transX: Double, transY: Double, shape: Shape) extends Shape {
   override def draw(adapter: TADPDrawingAdapter): TADPDrawingAdapter = shape.draw(adapter.beginTranslate(transX, transY)).end()
 }

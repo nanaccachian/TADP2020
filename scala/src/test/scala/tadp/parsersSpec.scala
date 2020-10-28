@@ -82,6 +82,14 @@ class ParsersSpec extends AnyFlatSpec with should.Matchers {
     double("5384").get shouldEqual ParserResult(5384, "")
   }
 
+  it should "recibiendo 0.01 produce 0.01" in {
+    double("0.01").get shouldEqual ParserResult(0.01, "")
+  }
+
+  it should "recibiendo -0.01 produce -0.01" in {
+    double("-0.01").get shouldEqual ParserResult(-0.01, "")
+  }
+
   it should "recibiendo 53.842 produce 53.842" in {
     double("53.842").get shouldEqual ParserResult(53.842, "")
   }

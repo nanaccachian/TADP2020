@@ -5,17 +5,17 @@ import tadp._
 class CombinatorsSpec extends AnyFlatSpec with should.Matchers {
 
   "<|>" should "FELIZ A" in {
-    val holaOadios: Parser[Any] = string("hola") <|> integer
+    val holaOadios: Parser[String] = string("hola") <|> string("adios")
     holaOadios("holamundo").get shouldEqual ParserResult("hola", "mundo")
   }
 
   it should "FELIZ B" in {
-    val holaOadios: Parser[Any] = string("hola") <|> integer
-    holaOadios("5384hola").get shouldEqual ParserResult(5384, "hola")
+    val holaOadios: Parser[String] = string("hola") <|> string("adios")
+    holaOadios("adiosmundo").get shouldEqual ParserResult("adios", "mundo")
   }
 
   it should "TRISTE" in {
-    val holaOadios: Parser[Any] = string("hola") <|> string("adios")
+    val holaOadios: Parser[String] = string("hola") <|> string("adios")
     an[ParserError] should be thrownBy holaOadios("chaumundo").get
   }
 
@@ -50,27 +50,32 @@ class CombinatorsSpec extends AnyFlatSpec with should.Matchers {
   }
 
   "stepBy" should "FELIZ A" in {
-    val telefono: Parser[String] = integer stepBy char('-')
-    telefono("4356-1234").get shouldEqual ParserResult("4356-1234", "")
+    val telefono: Parser[List[Int]] = integer stepBy char('-')
+    telefono("4356-1234").get shouldEqual ParserResult(List(4356, 1234), "")
   }
 
   it should "FELIZ B" in {
-    val telefono: Parser[String] = char('a') stepBy char('-')
-    telefono("a-a-a-a-a").get shouldEqual ParserResult("a-a-a-a-a", "")
+    val telefono: Parser[List[Char]] = char('a') stepBy char('-')
+    telefono("a-a-a-a-a").get shouldEqual ParserResult(List('a', 'a', 'a', 'a', 'a'), "")
   }
 
-  it should "TRISTE A" in {
-    val telefono: Parser[String] = integer stepBy char('-')
-    an[ParserError] should be thrownBy telefono("4356 1234").get
+  it should "FELIZ C" in {
+    val telefono: Parser[List[Int]] = integer stepBy char('-')
+    telefono("4356 1234").get shouldEqual ParserResult(List(4356), " 1234")
+  }
+
+  it should "FELIZ D" in {
+    val telefono: Parser[List[Char]] = char('a') stepBy char('-')
+    telefono("a-a-a-").get shouldEqual ParserResult(List('a', 'a', 'a'), "-")
+  }
+
+  it should "FELIZ E" in {
+    val telefono: Parser[List[Char]] = (char('a') <|> char('b')) stepBy char('-')
+    telefono("a-b-a-b-a-b").get shouldEqual ParserResult(List('a', 'b', 'a', 'b', 'a', 'b'), "")
   }
 
   it should "TRISTE B" in {
-    val telefono: Parser[String] = integer stepBy char('/')
+    val telefono: Parser[List[Int]] = integer stepBy char('/')
     an[ParserError] should be thrownBy telefono("/4356/1234").get
-  }
-
-  it should "TRISTE C" in {
-    val telefono: Parser[String] = char('a') stepBy char('-')
-    an[ParserError] should be thrownBy telefono("a-a-a-").get
   }
 }

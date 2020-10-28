@@ -1,5 +1,4 @@
 package tadp
-import scala.math._
 import scala.util._
 
 case object anyChar extends Parser[Char] {
@@ -11,39 +10,41 @@ case object anyChar extends Parser[Char] {
 }
 
 case class char(target: Char) extends Parser[Char] {
-  override def apply(input: String): Try[ParserResult[Char]] = anyChar.satisfies(_ == target)(input)
+  override def apply(input: String): Try[ParserResult[Char]] = anyChar.satisfies(_ == target) (input)
 }
 
 case object digit extends Parser[Int] {
-  override def apply(input: String): Try[ParserResult[Int]] = anyChar.satisfies(_.isDigit).map(_ - 48)(input)
+  override def apply(input: String): Try[ParserResult[Int]] = anyChar.satisfies(_.isDigit).map(_ - 48) (input)
 }
 
 case class string(target: String) extends Parser[String] {
-  override def apply(input: String): Try[ParserResult[String]] = Try {
-    val out = target.foldLeft(input)((output: String, ch: Char) => {
-      char(ch)(output).get.output
-    })
-    ParserResult(target, out)
-  }
+  override def apply(input: String): Try[ParserResult[String]] = target.map{char(_).map(_.toString)}.reduceLeft{(a, b) => (a <> b).map{case (c1, c2) => c1 + c2}} (input)
+}
+
+case object sign extends Parser[Int] {
+  override def apply(input: String): Try[ParserResult[Int]] = char('-').opt().map{opt => if (opt.isEmpty) 1 else -1} (input)
+}
+
+case object unsigned extends Parser[Int] {
+  override def apply(input: String): Try[ParserResult[Int]] =
+    digit.+.map {
+      case digits => digits.reduceLeft((a, b) => a * 10 + b)
+    } (input)
 }
 
 case object integer extends Parser[Int] {
-  override def apply(input: String): Try[ParserResult[Int]] = {
-    val firstParse = char('-').opt()(input)
-    val sign = if (firstParse.get.consumed.isEmpty) 1 else -1
-    digit.+(firstParse.get.output).map( result => result.copy(consumed = result.consumed.reduceLeft((a, b) => a * 10 + b) * sign))
-  }
+  override def apply(input: String): Try[ParserResult[Int]] =
+    (sign <> unsigned).map {
+      case (sign, unsigned) => sign * unsigned
+    } (input)
 }
 
 case object double extends Parser[Double] {
-  override def apply(input: String): Try[ParserResult[Double]] =
-    (integer <> (char('.') <> integer).opt()) (input) match {
-      case Success(ParserResult((real, tFractional), output)) if tFractional.nonEmpty =>
-        tFractional.get match {
-          case (_, fractional) if fractional >= 0 => Success(ParserResult(real + fractional / pow(10, fractional.toString.length) * real.sign, output))
-          case _ => Failure(new ParserError)
-        }
-      case Success(ParserResult((real, _), output)) => Success(ParserResult(real, output))
-      case _ => Failure(new ParserError)
-    }
+  override def apply(input: String): Try[ParserResult[Double]] = {
+    val fractionalParser: Parser[Double] = (char('.') ~> digit.+).map{_.map{_.toDouble}.foldRight(.0)((a, b) => (a + b) / 10 )}
+    (sign <> unsigned <> fractionalParser.opt()).map {
+      case ((sign, 0), fractional) => sign * fractional.getOrElse(.0)
+      case ((sign, real), fractional) => sign * (real.toDouble + fractional.getOrElse(.0) * real.sign)
+    } (input)
+  }
 }

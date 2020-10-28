@@ -3,31 +3,23 @@ import scala.util._
 
 trait Parser[A] extends (String => Try[ParserResult[A]]) {
 
-  def <|>[B](parserB: Parser[B]): Parser[Any] = input =>
+  def <|>(parserB: => Parser[A]): Parser[A] = input =>
     Try(this (input).getOrElse(parserB(input).get))
 
-  def <>[B](parserB: Parser[B]): Parser[(A, B)] = input => Try {
+  def <>[B](parserB: => Parser[B]): Parser[(A, B)] = input => Try {
     this.andThen(resultA => {
       val resultB = parserB(resultA.get.output).get
       ParserResult((resultA.get.consumed, resultB.consumed), resultB.output)
     }).apply(input)
   }
 
-  def ~>[B](parserB: Parser[B]): Parser[B] = this (_).flatMap(r => parserB(r.output))
+  def ~>[B](parserB: => Parser[B]): Parser[B] = this (_).flatMap(r => parserB(r.output))
 
-  def <~[B](parserB: Parser[B]): Parser[A] = this (_).flatMap(a => parserB(a.output).map(b => a.copy(output = b.output)))
+  def <~[B](parserB: => Parser[B]): Parser[A] = this (_).flatMap(a => parserB(a.output).map(b => a.copy(output = b.output)))
 
-  def stepBy[B](parserB: Parser[B]): Parser[String] = input => Try {
-    var pivot: Try[ParserResult[Any]] = this (input)
-    var result = pivot
-    while (!result.get.output.isEmpty) {
-      result = pivot
-      pivot = (parserB <> this) (pivot.get.output)
-    }
-    ParserResult(input, "")
-  }
+  def stepBy[B](parserB: => Parser[B]): Parser[List[A]] = (this <> (parserB ~> this).*).map { case (first, list) => first :: list }
 
-  def satisfies(condition: A => Boolean): Parser[A] = this (_).flatMap {
+  def satisfies(condition: => A => Boolean): Parser[A] = this (_).flatMap {
     case result if condition(result.consumed) => Success(result)
     case _ => Failure(new ParserError)
   }
@@ -57,7 +49,7 @@ trait Parser[A] extends (String => Try[ParserResult[A]]) {
       case result => result
     }
 
-  def map[B](transform: A => B): Parser[B] = this(_).map(result => result.copy(consumed = transform(result.consumed)))
+  def map[B](transform: => A => B): Parser[B] = this(_).map(result => result.copy(consumed = transform(result.consumed)))
 }
 
 case class ParserResult[+T](consumed: T, output: String)

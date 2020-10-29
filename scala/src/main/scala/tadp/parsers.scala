@@ -28,7 +28,7 @@ case object sign extends Parser[Int] {
 case object unsigned extends Parser[Int] {
   override def apply(input: String): Try[ParserResult[Int]] =
     digit.+.map {
-      case digits => digits.reduceLeft((a, b) => a * 10 + b)
+      case digits => digits.reduceLeft{ _ * 10 + _ }
     } (input)
 }
 

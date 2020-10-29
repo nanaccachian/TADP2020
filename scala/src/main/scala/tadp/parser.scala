@@ -17,7 +17,7 @@ trait Parser[A] extends (String => Try[ParserResult[A]]) {
 
   def <~[B](parserB: => Parser[B]): Parser[A] = this (_).flatMap(a => parserB(a.output).map(b => a.copy(output = b.output)))
 
-  def stepBy[B](parserB: => Parser[B]): Parser[List[A]] = (this <> (parserB ~> this).*).map { case (first, list) => first :: list }
+  def sepBy[B](parserB: => Parser[B]): Parser[List[A]] = (this <> (parserB ~> this).*).map { case (first, list) => first :: list }
 
   def satisfies(condition: => A => Boolean): Parser[A] = this (_).flatMap {
     case result if condition(result.consumed) => Success(result)

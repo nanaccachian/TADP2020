@@ -49,33 +49,33 @@ class CombinatorsSpec extends AnyFlatSpec with should.Matchers {
     an[ParserError] should be thrownBy mundohola("holamundolindo").get
   }
 
-  "stepBy" should "FELIZ A" in {
-    val telefono: Parser[List[Int]] = integer stepBy char('-')
+  "sepBy" should "FELIZ A" in {
+    val telefono: Parser[List[Int]] = integer sepBy char('-')
     telefono("4356-1234").get shouldEqual ParserResult(List(4356, 1234), "")
   }
 
   it should "FELIZ B" in {
-    val telefono: Parser[List[Char]] = char('a') stepBy char('-')
+    val telefono: Parser[List[Char]] = char('a') sepBy char('-')
     telefono("a-a-a-a-a").get shouldEqual ParserResult(List('a', 'a', 'a', 'a', 'a'), "")
   }
 
   it should "FELIZ C" in {
-    val telefono: Parser[List[Int]] = integer stepBy char('-')
+    val telefono: Parser[List[Int]] = integer sepBy char('-')
     telefono("4356 1234").get shouldEqual ParserResult(List(4356), " 1234")
   }
 
   it should "FELIZ D" in {
-    val telefono: Parser[List[Char]] = char('a') stepBy char('-')
+    val telefono: Parser[List[Char]] = char('a') sepBy char('-')
     telefono("a-a-a-").get shouldEqual ParserResult(List('a', 'a', 'a'), "-")
   }
 
   it should "FELIZ E" in {
-    val telefono: Parser[List[Char]] = (char('a') <|> char('b')) stepBy char('-')
+    val telefono: Parser[List[Char]] = (char('a') <|> char('b')) sepBy char('-')
     telefono("a-b-a-b-a-b").get shouldEqual ParserResult(List('a', 'b', 'a', 'b', 'a', 'b'), "")
   }
 
   it should "TRISTE B" in {
-    val telefono: Parser[List[Int]] = integer stepBy char('/')
+    val telefono: Parser[List[Int]] = integer sepBy char('/')
     an[ParserError] should be thrownBy telefono("/4356/1234").get
   }
 }

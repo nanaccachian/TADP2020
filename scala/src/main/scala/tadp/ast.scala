@@ -20,7 +20,7 @@ object ast {
 
   def circleParser: Parser[Shape] = (string("circulo") ~> blankParser ~> char('[') ~> pointParser <~ commaParser <> doubleParser <~ char(']')).map(pointTuple => circle(pointTuple._1, pointTuple._2))
 
-  def groupParser: Parser[Shape] = (string("grupo") ~> blankParser ~> char('(') ~> shapeParser.stepBy(commaParser) <~ char(')')).map (shapes => group(shapes))
+  def groupParser: Parser[Shape] = (string("grupo") ~> blankParser ~> char('(') ~> shapeParser.sepBy(commaParser) <~ char(')')).map (shapes => group(shapes))
 
   def colorParser: Parser[Shape] = (string("color") ~> blankParser ~> char('[') ~> intParser <~ commaParser <> intParser <~ commaParser <> intParser <~ char(']') <~ blankParser <> char('(') ~> shapeParser <~ char(')')).map {
     case (((colorR, colorG), colorB), shape) => color(colorR, colorG, colorB, shape)

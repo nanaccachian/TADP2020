@@ -49,28 +49,28 @@ class CombinatorsSpec extends AnyFlatSpec with should.Matchers {
     an[ParserError] should be thrownBy mundohola("holamundolindo").get
   }
 
-  "stepBy" should "FELIZ A" in {
-    val telefono: Parser[String] = integer stepBy char('-')
+  "sepBy" should "FELIZ A" in {
+    val telefono: Parser[String] = integer sepBy char('-')
     telefono("4356-1234").get shouldEqual ParserResult("4356-1234", "")
   }
 
   it should "FELIZ B" in {
-    val telefono: Parser[String] = char('a') stepBy char('-')
+    val telefono: Parser[String] = char('a') sepBy char('-')
     telefono("a-a-a-a-a").get shouldEqual ParserResult("a-a-a-a-a", "")
   }
 
   it should "TRISTE A" in {
-    val telefono: Parser[String] = integer stepBy char('-')
+    val telefono: Parser[String] = integer sepBy char('-')
     an[ParserError] should be thrownBy telefono("4356 1234").get
   }
 
   it should "TRISTE B" in {
-    val telefono: Parser[String] = integer stepBy char('/')
+    val telefono: Parser[String] = integer sepBy char('/')
     an[ParserError] should be thrownBy telefono("/4356/1234").get
   }
 
   it should "TRISTE C" in {
-    val telefono: Parser[String] = char('a') stepBy char('-')
+    val telefono: Parser[String] = char('a') sepBy char('-')
     an[ParserError] should be thrownBy telefono("a-a-a-").get
   }
 }

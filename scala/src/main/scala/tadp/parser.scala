@@ -17,7 +17,7 @@ trait Parser[A] extends (String => Try[ParserResult[A]]) {
 
   def <~[B](parserB: Parser[B]): Parser[A] = this (_).flatMap(a => parserB(a.output).map(b => a.copy(output = b.output)))
 
-  def stepBy[B](parserB: Parser[B]): Parser[String] = input => Try {
+  def sepBy[B](parserB: Parser[B]): Parser[String] = input => Try {
     var pivot: Try[ParserResult[Any]] = this (input)
     var result = pivot
     while (!result.get.output.isEmpty) {

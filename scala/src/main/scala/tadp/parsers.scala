@@ -18,7 +18,7 @@ case object digit extends Parser[Int] {
 }
 
 case class string(target: String) extends Parser[String] {
-  override def apply(input: String): Try[ParserResult[String]] = target.map{char(_).map(_.toString)}.reduceLeft{(a, b) => (a <> b).map{case (c1, c2) => c1 + c2}} (input)
+  override def apply(input: String): Try[ParserResult[String]] = target.map{ char(_).map(_.toString)}.reduceLeft{(a, b) => (a <> b).map{ case (c1, c2) => c1 + c2 }} (input)
 }
 
 case object sign extends Parser[Int] {
@@ -42,9 +42,6 @@ case object integer extends Parser[Int] {
 case object double extends Parser[Double] {
   override def apply(input: String): Try[ParserResult[Double]] = {
     val fractionalParser: Parser[Double] = (char('.') ~> digit.+).map{_.map{_.toDouble}.foldRight(.0)((a, b) => (a + b) / 10 )}
-    (sign <> unsigned <> fractionalParser.opt()).map {
-      case ((sign, 0), fractional) => sign * fractional.getOrElse(.0)
-      case ((sign, real), fractional) => sign * (real.toDouble + fractional.getOrElse(.0) * real.sign)
-    } (input)
+    (sign <> unsigned <> fractionalParser.opt()).map { case ((sign, real), fractional) => sign * (real.toDouble + fractional.getOrElse(.0)) } (input)
   }
 }

@@ -1,12 +1,13 @@
 package tadp
 
-object ast {
+import scala.annotation.tailrec
 
+object ast {
   def blankParser: Parser[List[Char]] = (char(' ') <|> char('\n') <|> char('\t')).*
 
-  def pointParser: Parser[Point] = (double <~ spacedCharParser('@') <> double).map(tuple => Point(tuple._1, tuple._2))
-
   def spacedCharParser(c: Char): Parser[Char] = blankParser ~> char(c) <~ blankParser
+
+  def pointParser: Parser[Point] = (double <~ spacedCharParser('@') <> double).map { case (x, y) => Point(x, y) }
 
   def commaParser: Parser[Char] = spacedCharParser(',')
 
@@ -18,9 +19,7 @@ object ast {
 
   def circleParser: Parser[Shape] = (string("circulo") ~> spacedCharParser('[') ~> pointParser <~ commaParser <> double <~ spacedCharParser(']')).map { case (o, r) => circle(o, r) }
 
-  def groupParser: Parser[Shape] = (string("grupo") ~> spacedCharParser('(') ~> shapeParser.sepBy(commaParser) <~ spacedCharParser(')')).map {
-    group(_)
-  }
+  def groupParser: Parser[Shape] = (string("grupo") ~> spacedCharParser('(') ~> shapeParser.sepBy(commaParser) <~ spacedCharParser(')')).map { group(_) }
 
   def colorParser: Parser[Shape] = (string("color") ~> spacedCharParser('[') ~> integer <~ commaParser <> integer <~ commaParser <> integer <~ spacedCharParser(']') <> spacedCharParser('(') ~> shapeParser <~ spacedCharParser(')')).map {
     case (((colorR, colorG), colorB), shape) => color(colorR, colorG, colorB, shape)
@@ -36,9 +35,7 @@ object ast {
 
   def parser: Parser[Shape] = shapeParser
 
-  def parserSimplified: String => Shape = shapeParser.andThen {
-    _.get.consumed
-  }
+  def parserSimplified: String => Shape = input => simplify(shapeParser(input).get.consumed)
 
   def colorGroup(input: List[Shape]): Boolean = input match {
     case list@List(color(rA, gA, bA, _), color(rB, gB, bB, _), _*) if rA == rB && gA == gB && bA == bB => colorGroup(list.tail)
@@ -67,21 +64,20 @@ object ast {
   def simplify(input: Shape): Shape = input match {
     case color(_, _, _, childColor: color) => simplify(childColor)
 
-    case group(list@color(r, g, b, child) :: tail) if colorGroup(list) => simplify(color(r, g, b, group(child :: tail.map { case color(_, _, _, child) => child })))
-    case group(list@rotate(angle, child) :: tail) if rotateGroup(list) => simplify(rotate(angle, group(child :: tail.map { case rotate(_, child) => child })))
-    case group(list@scale(scaleX, scaleY, child) :: tail) if scaleGroup(list) => simplify(scale(scaleX, scaleY, group(child :: tail.map { case scale(_, _, child) => child })))
-    case group(list@translate(transX, transY, child) :: tail) if translateGroup(list) => simplify(translate(transX, transY, group(child :: tail.map { case translate(_, _, child) => child })))
+    case group(list@color(r, g, b, _) :: _) if colorGroup(list) => simplify(color(r, g, b, group(list.map { case color(_, _, _, child) => child })))
+    case group(list@rotate(angle, _) :: _) if rotateGroup(list) => simplify(rotate(angle, group(list.map { case rotate(_, child) => child })))
+    case group(list@scale(scaleX, scaleY, _) :: _) if scaleGroup(list) => simplify(scale(scaleX, scaleY, group(list.map { case scale(_, _, child) => child })))
+    case group(list@translate(transX, transY, _) :: _) if translateGroup(list) => simplify(translate(transX, transY, group(list.map { case translate(_, _, child) => child })))
+    case group(list) => group(list.map { simplify(_) })
 
     case rotate(gradesA, rotate(gradesB, child)) => simplify(rotate(gradesA + gradesB, child))
     case scale(scaleXA, scaleYA, scale(scaleXB, scaleYB, child)) => simplify(scale(scaleXA * scaleXB, scaleYA * scaleYB, child))
     case translate(transXA, transYA, translate(transXB, transYB, child)) => simplify(translate(transXA + transXB, transYA + transYB, child))
+
     case rotate(angle, child) if angle % 360 == 0 => simplify(child)
     case scale(1, 1, child) => simplify(child)
     case translate(0, 0, child) => simplify(child)
 
-    case group(list) => group(list.map {
-      simplify(_)
-    })
     case color(r, g, b, child) => color(r, g, b, simplify(child))
     case rotate(angle, child) => rotate(angle, simplify(child))
     case scale(scaleX, scaleY, child) => scale(scaleX, scaleY, simplify(child))

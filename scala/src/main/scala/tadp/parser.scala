@@ -10,7 +10,7 @@ trait Parser[A] extends (String => Try[ParserResult[A]]) {
     this.andThen(resultA => {
       val resultB = parserB(resultA.get.output).get
       ParserResult((resultA.get.consumed, resultB.consumed), resultB.output)
-    }).apply(input)
+    }) (input)
   }
 
   def ~>[B](parserB: => Parser[B]): Parser[B] = this (_).flatMap(r => parserB(r.output))
@@ -43,11 +43,7 @@ trait Parser[A] extends (String => Try[ParserResult[A]]) {
     Success(ParserResult(consumed, output))
   }
 
-  def + : Parser[List[A]] = input =>
-    this.* (input) match {
-      case Success(ParserResult(List(), _)) => Failure(new ParserError)
-      case result => result
-    }
+  def + : Parser[List[A]] = (this <> this.*).map { case (first, list) => first :: list }
 
   def map[B](transform: => A => B): Parser[B] = this(_).map(result => result.copy(consumed = transform(result.consumed)))
 }

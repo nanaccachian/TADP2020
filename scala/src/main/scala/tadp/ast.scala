@@ -9,31 +9,31 @@ object ast {
 
   val commaParser: Parser[Char] = spacedCharParser(',')
 
-  val rectangleParser: Parser[Shape] = (string("rectangulo") ~> spacedCharParser('[') ~> pointParser <~ commaParser <> pointParser <~ spacedCharParser(']')).map { case (pA, pB) => rectangle(pA, pB) }
+  def between[T](open: Char, parser: Parser[T], close: Char): Parser[T] = spacedCharParser(open) ~> parser <~ spacedCharParser(close)
+  def brackets[T](parser: Parser[T]): Parser[T] = between('(', parser, ')')
+  def squaredBrackets[T](parser: Parser[T]): Parser[T] = between('[', parser, ']')
 
-  val triangleParser: Parser[Shape] = (string("triangulo") ~> spacedCharParser('[') ~> pointParser <~ commaParser <> pointParser <~ commaParser <> pointParser <~ spacedCharParser(']')).map { case ((pA, pB), pC) => triangle(pA, pB, pC) }
+  val rectangleParser: Parser[Shape] = (string("rectangulo") ~> squaredBrackets(pointParser <~ commaParser <> pointParser)).map { case (pA, pB) => rectangle(pA, pB) }
 
-  val circleParser: Parser[Shape] = (string("circulo") ~> spacedCharParser('[') ~> pointParser <~ commaParser <> double <~ spacedCharParser(']')).map { case (o, r) => circle(o, r) }
+  val triangleParser: Parser[Shape] = (string("triangulo") ~> squaredBrackets(pointParser <~ commaParser <> pointParser <~ commaParser <> pointParser)).map { case ((pA, pB), pC) => triangle(pA, pB, pC) }
 
-  val colorParser: Parser[Shape] = (string("color") ~> spacedCharParser('[') ~> integer <~ commaParser <> integer <~ commaParser <> integer <~ spacedCharParser(']') <> spacedCharParser('(') ~> shapeParser <~ spacedCharParser(')')).map {
+  val circleParser: Parser[Shape] = (string("circulo") ~> squaredBrackets(pointParser <~ commaParser <> double)).map { case (o, r) => circle(o, r) }
+
+  val colorParser: Parser[Shape] = (string("color") ~> squaredBrackets(integer <~ commaParser <> integer <~ commaParser <> integer) <> brackets(shapeParser)).map {
     case (((colorR, colorG), colorB), shape) => color(colorR, colorG, colorB, shape)
   }
 
   val shapeParser: Parser[Shape] = blankParser ~> (rectangleParser <|> triangleParser <|> circleParser <|> groupParser <|> colorParser <|> scaleParser <|> rotateParser) <~ blankParser
 
-  val groupParser: Parser[Shape] = (string("grupo") ~> spacedCharParser('(') ~> shapeParser.sepBy(commaParser) <~ spacedCharParser(')')).map {
+  val groupParser: Parser[Shape] = (string("grupo") ~> brackets(shapeParser.sepBy(commaParser))).map {
     group(_)
   }
 
-  // TODO generalizen los que usan [] y () así no tienen que repetir los mismos parsers varias veces (ej: hagan una 
-  //  funcion que recibe el parser de lo que está adentro del parentesis por parámetro y 
-  //  retorna un parser que maneja los parentesis y el nombre)
-
-  val scaleParser: Parser[Shape] = (string("escala") ~> spacedCharParser('[') ~> double <~ commaParser <> double <~ spacedCharParser(']') <> spacedCharParser('(') ~> shapeParser <~ spacedCharParser(')')).map {
+  val scaleParser: Parser[Shape] = (string("escala") ~> squaredBrackets(double <~ commaParser <> double) <> brackets(shapeParser)).map {
     case ((scaleX, scaleY), shape) => scale(scaleX, scaleY, shape)
   }
 
-  val rotateParser: Parser[Shape] = (string("rotacion") ~> spacedCharParser('[') ~> double <~ spacedCharParser(']') <> spacedCharParser('(') ~> shapeParser <~ spacedCharParser(')')).map {
+  val rotateParser: Parser[Shape] = (string("rotacion") ~> squaredBrackets(double) <> brackets(shapeParser)).map {
     case (angle, shape) => rotate(angle, shape)
   }
 

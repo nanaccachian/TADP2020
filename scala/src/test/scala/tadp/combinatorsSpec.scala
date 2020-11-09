@@ -1,6 +1,7 @@
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
 import tadp._
+import tadp.parsers._
 
 class CombinatorsSpec extends AnyFlatSpec with should.Matchers {
 
@@ -12,6 +13,16 @@ class CombinatorsSpec extends AnyFlatSpec with should.Matchers {
   it should "FELIZ B" in {
     val holaOadios: Parser[String] = string("hola") <|> string("adios")
     holaOadios("adiosmundo").get shouldEqual ParserResult("adios", "mundo")
+  }
+
+  it should "FELIZ C" in {
+    val holaOint: Parser[Any] = string("hola") <|> integer
+    holaOint("123mundo").get shouldEqual ParserResult(123, "mundo")
+  }
+
+  it should "FELIZ D" in {
+    val holaOint: Parser[Any] = string("hola") <|> integer
+    holaOint("holamundo").get shouldEqual ParserResult("hola", "mundo")
   }
 
   it should "TRISTE" in {

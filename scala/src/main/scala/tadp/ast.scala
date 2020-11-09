@@ -1,4 +1,5 @@
 package tadp
+import tadp.parsers._
 
 object ast {
   val blankParser: Parser[List[Char]] = (char(' ') <|> char('\n') <|> char('\t')).*

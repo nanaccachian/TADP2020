@@ -1,6 +1,7 @@
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should
 import tadp._
+import tadp.parsers._
 
 class OperatorsSpec extends AnyFlatSpec with should.Matchers {
   "satisfies" should "anyChar consume h recibiendo hola validando == h" in {

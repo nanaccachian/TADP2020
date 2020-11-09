@@ -1,4 +1,5 @@
 package tadp
+import tadp.parsers._
 import org.scalatest.flatspec._
 import org.scalatest.matchers._
 

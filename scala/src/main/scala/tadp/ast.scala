@@ -13,6 +13,10 @@ object ast {
 
   def shapeParser: Parser[Shape] = blankParser ~> (rectangleParser <|> triangleParser <|> circleParser <|> groupParser <|> colorParser <|> scaleParser <|> rotateParser) <~ blankParser
 
+  // TODO generalizen los que usan [] y () así no tienen que repetir los mismos parsers varias veces (ej: hagan una 
+  //  funcion que recibe el parser de lo que está adentro del parentesis por parámetro y 
+  //  retorna un parser que maneja los parentesis y el nombre)
+  
   def rectangleParser: Parser[Shape] = (string("rectangulo") ~> spacedCharParser('[') ~> pointParser <~ commaParser <> pointParser <~ spacedCharParser(']')).map { case (pA, pB) => rectangle(pA, pB) }
 
   def triangleParser: Parser[Shape] = (string("triangulo") ~> spacedCharParser('[') ~> pointParser <~ commaParser <> pointParser <~ commaParser <> pointParser <~ spacedCharParser(']')).map { case ((pA, pB), pC) => triangle(pA, pB, pC) }

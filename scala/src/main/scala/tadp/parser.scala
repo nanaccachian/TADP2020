@@ -1,5 +1,6 @@
 package tadp
 
+import scala.annotation.tailrec
 import scala.util._
 
 trait Parser[+A] extends (String => Try[ParserResult[A]]) {
@@ -109,17 +110,28 @@ trait Parser[+A] extends (String => Try[ParserResult[A]]) {
   //  }
 
   def * : Parser[List[A]] = input => {
-    var consumed = List[A]()
-    var output = input
-
-    var result = this (input)
-    while (result.isSuccess) {
-      consumed = consumed :+ result.get.consumed
-      output = result.get.output
-      result = this (output)
+    // Versión inmutable al algoritmo que tenían antes:
+    @tailrec
+    def recursiveKleene(output: String, consumed: List[A]): ParserResult[List[A]] = {
+      this (output) match {
+        case Success(ParserResult(parsed, parsedOutput)) => recursiveKleene(parsedOutput, consumed :+ parsed)
+        case Failure(_) => ParserResult(consumed, output)
+      }
     }
 
-    Success(ParserResult(consumed, output))
+    Success(recursiveKleene(input, List()))
+
+    //    var consumed = List[A]()
+    //    var output = input
+    //
+    //    var result = this (input)
+    //    while (result.isSuccess) {
+    //      consumed = consumed :+ result.get.consumed
+    //      output = result.get.output
+    //      result = this (output)
+    //    }
+    //
+    //    Success(ParserResult(consumed, output))
   }
 
   def + : Parser[List[A]] = (this <> this.*).map { case (first, list) => first :: list }

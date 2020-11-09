@@ -9,6 +9,14 @@ case object anyChar extends Parser[Char] {
     }
 }
 
+package object parsers {
+  // Detalle minimo de estilo: esto es lo mismo pero más compacto (no es necesario usar case object ni el match)
+  val anyChar: Parser[Char] = {
+    case "" => Failure(new ParserError)
+    case nonEmpty => Success(ParserResult(nonEmpty.head, nonEmpty.tail))
+  }
+}
+
 case class char(target: Char) extends Parser[Char] {
   override def apply(input: String): Try[ParserResult[Char]] = anyChar.satisfies(_ == target) (input)
 }

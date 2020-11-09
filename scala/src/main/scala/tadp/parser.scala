@@ -6,6 +6,7 @@ trait Parser[+A] extends (String => Try[ParserResult[A]]) {
 
   def <|>[U >: A](parserB: => Parser[U]): Parser[U] = input =>
     this (input).orElse(parserB(input))
+
   //Try(this (input).getOrElse(parserB(input).get))
   /*
     Para el type parameter, podrían pensarlo así tambien (versión larga):
@@ -45,10 +46,10 @@ trait Parser[+A] extends (String => Try[ParserResult[A]]) {
     class Perro extends Animal
     val persona: Try[Persona] = ???
     val perro: Try[Perro] = ???
-    
+
     val resultInferido = persona.orElse(perro)
     val resultExplicito: Try[Animal] = persona.orElse(perro)
-    
+
     // --- parser
     // Ahora puedo escribir un parser <|> con herencia!!!
     val parserPersona: Parser[Persona] = ???
@@ -56,6 +57,7 @@ trait Parser[+A] extends (String => Try[ParserResult[A]]) {
     val resultParserInferido = parserPersona <|> parserPerro
     val resultParserExplicito: Parser[Animal] = parserPersona <|> parserPerro
   }
+
   /*
     Ahí pueden ver como el compilador solito decidió que la parte común entre Persona y Perro es el tipo Animal.
     
@@ -69,6 +71,7 @@ trait Parser[+A] extends (String => Try[ParserResult[A]]) {
     val resultExplicito: Try[Any] = string.orElse(int)
   }
 
+  // TODO saquen este Try {} y los demás que usen por una mecanica similar a la anterior
   def <>[B](parserB: => Parser[B]): Parser[(A, B)] = input => Try {
     this.andThen(resultA => {
       val resultB = parserB(resultA.get.output).get
@@ -87,10 +90,23 @@ trait Parser[+A] extends (String => Try[ParserResult[A]]) {
     case _ => Failure(new ParserError)
   }
 
-  def opt(): Parser[Option[A]] = input => this (input) match {
-    case Success(ParserResult(consumed, output)) => Success(ParserResult(Option(consumed), output))
-    case Failure(_) => Success(ParserResult(Option.empty, input))
-  }
+  def opt(): Parser[Option[A]] = input =>
+    // esto es una forma más compacta, evitando el pattern match
+    // TODO esto sería más feliz si ParserResult entendiera "map"
+    // TODO otra es modelar ParserResult como se modela Option o Try (como un trait con dos hijos)
+    //   Entonces, podrían tener un ParserResultSuccess y un ParserResultFailure, 
+    //   donde sucess es igual al ParserResult actual y ParserResultFailure tiene como parametros lo que se consumió, el error y alguna otra cosa que necesiten.
+    //   Si hacen eso, pueden definir un "orElse", "map", "flatMap" a nivel de ParserResult y esta lógica que se repite seguido (abrir el Try y hacer algo)
+    //   quedaría generalizada.
+    //   MORALEJA: armen esa herencia como mejora en la implementación
+    this (input)
+      .map(r => ParserResult(Some(r.consumed), r.output))
+      .orElse(Success(ParserResult(None, input)))
+
+  //  def opt(): Parser[Option[A]] = input => this (input) match {
+  //    case Success(ParserResult(consumed, output)) => Success(ParserResult(Option(consumed), output))
+  //    case Failure(_) => Success(ParserResult(Option.empty, input))
+  //  }
 
   def * : Parser[List[A]] = input => {
     var consumed = List[A]()

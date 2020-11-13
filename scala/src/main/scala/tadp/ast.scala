@@ -40,7 +40,7 @@ object ast {
 
   val parser: Parser[Shape] = shapeParser
 
-  val parserSimplified: String => Shape = input => simplify(shapeParser(input).get.consumed)
+  val parserSimplified: String => Shape = input => simplify(shapeParser(input).getConsumed)
 
   def colorGroup(input: List[Shape]): Boolean = input match {
     case list@List(color(rA, gA, bA, _), color(rB, gB, bB, _), _*) if rA == rB && gA == gB && bA == bB => colorGroup(list.tail)

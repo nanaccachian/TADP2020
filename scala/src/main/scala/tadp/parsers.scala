@@ -1,10 +1,9 @@
 package tadp
-import scala.util._
 
 package object parsers {
   val anyChar: Parser[Char] = {
-    case "" => Failure(new ParserError)
-    case nonEmpty => Success(ParserResult(nonEmpty.head, nonEmpty.tail))
+    case "" => ParserResultFailure()
+    case nonEmpty => ParserResultSuccess(nonEmpty.head, nonEmpty.tail)
   }
 
   val char: Char => Parser[Char] = target => anyChar.satisfies(_ == target)
@@ -15,7 +14,7 @@ package object parsers {
 
   val sign: Parser[Int] = char('-').opt().map{opt => if (opt.isEmpty) 1 else -1}
 
-  val unsigned: Parser[Int] = digit.+.map { case digits => digits.reduceLeft{ _ * 10 + _ } }
+  val unsigned: Parser[Int] = digit.+.map { digits => digits.reduceLeft{ _ * 10 + _ } }
 
   val integer: Parser[Int] =  (sign <> unsigned).map { case (sign, unsigned) => sign * unsigned }
 

@@ -6,7 +6,8 @@ import scala.util._
 trait Parser[+A] extends (String => ParserResult[A]) {
 
   def <|>[U >: A](parserB: => Parser[U]): Parser[U] = input => this (input).orElse(parserB(input))
-
+  def <|>>[Padre >: A, U <: Padre](parserB: => Parser[U]): Parser[Padre] = input => this (input).orElse(parserB(input))
+  
   //Try(this (input).getOrElse(parserB(input).get))
   /*
     Para el type parameter, podrían pensarlo así tambien (versión larga):

@@ -1,6 +1,6 @@
 package tadp
 
-abstract class ParserResult[+T]() {
+sealed trait ParserResult[+T] {
   def map[U](transform: T => U): ParserResult[U]
   def flatMap[U](transform: (T, String) => ParserResult[U]): ParserResult[U]
   val getConsumed: T
